@@ -1,13 +1,10 @@
 ##controller
 ##includesとかはせずにとりあえずn1_safeを付けておく
-%(
 @posts = Post.all.n1_safe
-)
 #Post load (X.Xms) SELECT "posts".* FROM "posts"
 
 ##view
 ##なにも考えずにeachとかまわしまくる
-%(
 <% @posts.each do |post| %>
   <h1><%= post.title %> | <%= post.user.name %></h1>
   <p><%= post.body %></p>
@@ -17,7 +14,6 @@
     <%= comment.stars.map(&:user).map(&:name) %>
   <% end %>
 <% end %>
-)
 #必要になった時にloadされるイメージ(今でも部分的には動くはず)
 #Comment load (X.Xms) SELECT "comments".* FROM "comments" WHERE "comments"."post_id" IN (1,2)
 #User load (X.Xms) SELECT "users".* FROM "users" WHERE "users"."user_id" IN (3,4,5)
