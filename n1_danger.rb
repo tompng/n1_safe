@@ -1,6 +1,8 @@
 ##controller
 ##includesとかはせずにとりあえずn1_safeを付けておく
+%(
 @posts = Post.all
+)
 #Post load (X.Xms) SELECT "posts".* FROM "posts"
 
 ##view
