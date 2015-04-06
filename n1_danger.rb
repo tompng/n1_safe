@@ -19,7 +19,7 @@ end
 #User load (X.Xms) SELECT "users".* FROM "users" WHERE "users"."id" IN (1,3)
 #Comment load (X.Xms) SELECT "comments".* FROM "comments" WHERE "comments"."post_id" IN (1,2)
 #User load (X.Xms) SELECT "users".* FROM "users" WHERE "users"."id" IN (3,4,5)
-# (X.Xms) SELECT COUNT(*) AS count_all, coment_id as comment_id FROM "stars" WHERE "stars"."comment_id" IN (1,2,3,4,7,8)
+# (X.Xms) SELECT COUNT(*) AS count_all, coment_id as comment_id FROM "stars" WHERE "stars"."comment_id" IN (1,2,3,4,7,8) GROUP BY comment_id
 
 
 module N1Safe
