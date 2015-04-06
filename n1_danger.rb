@@ -98,7 +98,7 @@ module N1Safe
             reflection.foreign_key,
             model.id,
             reflection.scope,
-            {reflection.type => model.name}
+            {reflection.type => model.class.name}
           ]
         else
           [
