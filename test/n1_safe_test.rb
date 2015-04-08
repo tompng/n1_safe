@@ -39,7 +39,7 @@ class N1SafeTest < ActiveSupport::TestCase
       through_and_primarykey: [
         ->{Trash.all},
         ->(trashes){
-          trashes.flat_map(&:user).flat_map(&:blogs).flat_map(&:faved_users).flat_map(&:trashes)
+          trashes.flat_map(&:user).flat_map(&:blogs).flat_map{|b|b.faved_users.sort_by(&:inspect)}.flat_map(&:trashes)
         }
       ]
     }
