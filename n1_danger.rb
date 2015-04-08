@@ -38,6 +38,7 @@ module N1Safe
     def count model, path, name
       cache = @count_cache[[path, name]]
       return cache[[model.class, model.id]] if cache
+      return model.send(name).size if @cache[[*path, name]]
       cache = {}
       all_siblings = @cache[path]
       all_siblings.group_by(&:class).each do |klass, siblings|
@@ -112,12 +113,17 @@ module N1Safe
       end
     end
 
-    [:count, :size].each do |method|
-      define_method method do |*args, &block|
-        @collection.send(method, *args, &block) if args.present? || block || @parent.nil?
-        *parent_path, name = @path
-        @root.count(@parent, parent_path, name) || @collection.send(method, *args, &block)
-      end
+    def size
+      return @collection.size if @parent.nil?
+      *parent_path, name = @path
+      count = @root.count @parent, parent_path, name
+      return count if count
+      @root.preload @path
+      @collection.size
+    end
+
+    def count
+      size
     end
 
     def method_missing name, *args, &block
