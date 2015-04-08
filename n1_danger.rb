@@ -21,7 +21,6 @@ end
 #User load (X.Xms) SELECT "users".* FROM "users" WHERE "users"."id" IN (3,4,5)
 # (X.Xms) SELECT COUNT(*) AS count_all, coment_id as comment_id FROM "stars" WHERE "stars"."comment_id" IN (1,2,3,4,7,8) GROUP BY comment_id
 
-
 module N1Safe
   class LazyLoader
     def initialize bases
@@ -32,7 +31,7 @@ module N1Safe
     end
 
     def self.preloader
-      @@preloader ||= ActiveRecord::Associations::Preloader.new
+      @preloader ||= ActiveRecord::Associations::Preloader.new
     end
 
     def count model, path, name
