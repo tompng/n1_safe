@@ -7,7 +7,7 @@
 
 
 ## gemfile
-`gem 'n1_safe' github: 'tompng/n1_safe'`
+`gem 'n1_safe', github: 'tompng/n1_safe'`
 
 ## controller
 includesとかはせずにとりあえずn1_safeを付けておく
