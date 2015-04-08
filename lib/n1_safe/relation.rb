@@ -10,7 +10,7 @@ class N1Safe::Relation < BasicObject
     define_method name do |*args, &block|
       @root.preload @path
       @collection.map{|model|
-        Model.new @root, model, (@path||[])
+        ::N1Safe::Model.new @root, model, (@path||[])
       }.send(name, *args, &block)
     end
   end

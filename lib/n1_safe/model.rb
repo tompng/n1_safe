@@ -11,7 +11,7 @@ class N1Safe::Model < BasicObject
     end
     if reflection.collection?
       childs = send name
-      Relation.new @root, childs, [*@path, name], @model
+      ::N1Safe::Relation.new @root, childs, [*@path, name], @model
     else
       @root.preload [*@path, name]
       child = send name

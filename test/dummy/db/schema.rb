@@ -17,10 +17,15 @@ ActiveRecord::Schema.define(version: 20150408163601) do
     t.integer "owner_id"
   end
 
+  add_index "blogs", ["owner_id"], name: "index_blogs_on_owner_id"
+
   create_table "comments", force: :cascade do |t|
     t.integer "post_id"
     t.integer "user_id"
   end
+
+  add_index "comments", ["post_id"], name: "index_comments_on_post_id"
+  add_index "comments", ["user_id"], name: "index_comments_on_user_id"
 
   create_table "favs", force: :cascade do |t|
     t.string  "target_type"
@@ -28,19 +33,29 @@ ActiveRecord::Schema.define(version: 20150408163601) do
     t.integer "user_id"
   end
 
+  add_index "favs", ["target_type", "target_id"], name: "index_favs_on_target_type_and_target_id"
+  add_index "favs", ["user_id"], name: "index_favs_on_user_id"
+
   create_table "posts", force: :cascade do |t|
     t.integer "blog_id"
     t.integer "author_id"
     t.boolean "published"
   end
 
+  add_index "posts", ["author_id"], name: "index_posts_on_author_id"
+  add_index "posts", ["blog_id"], name: "index_posts_on_blog_id"
+
   create_table "trashes", force: :cascade do |t|
     t.string "user_another_id"
   end
+
+  add_index "trashes", ["user_another_id"], name: "index_trashes_on_user_another_id"
 
   create_table "users", force: :cascade do |t|
     t.string "type"
     t.string "another_id"
   end
+
+  add_index "users", ["another_id"], name: "index_users_on_another_id"
 
 end
