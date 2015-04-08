@@ -2,7 +2,7 @@ PATH
   remote: .
   specs:
     n1_safe (0.0.1)
-      rails (~> 4.2.1)
+      rails
 
 GEM
   remote: https://rubygems.org/
