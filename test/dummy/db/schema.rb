@@ -11,6 +11,36 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 0) do
+ActiveRecord::Schema.define(version: 20150408163601) do
+
+  create_table "blogs", force: :cascade do |t|
+    t.integer "owner_id"
+  end
+
+  create_table "comments", force: :cascade do |t|
+    t.integer "post_id"
+    t.integer "user_id"
+  end
+
+  create_table "favs", force: :cascade do |t|
+    t.string  "target_type"
+    t.integer "target_id"
+    t.integer "user_id"
+  end
+
+  create_table "posts", force: :cascade do |t|
+    t.integer "blog_id"
+    t.integer "author_id"
+    t.boolean "published"
+  end
+
+  create_table "trashes", force: :cascade do |t|
+    t.string "user_another_id"
+  end
+
+  create_table "users", force: :cascade do |t|
+    t.string "type"
+    t.string "another_id"
+  end
 
 end
