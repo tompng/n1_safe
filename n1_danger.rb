@@ -104,9 +104,13 @@ module N1Safe
       @parent = parent
     end
 
-    ::Enumerator.instance_methods.each do |name|
+    ::Array.instance_methods.each do |name|
       define_method name do |*args, &block|
         @root.preload @path
+        aaa=@collection.map{|model|
+          Model.new @root, model, (@path||[])
+        }.send(name, *args, &block)
+        [@collection, @root,@path,@parent,name,args,block,model,aaa].pry if $hoge==3
         @collection.map{|model|
           Model.new @root, model, (@path||[])
         }.send(name, *args, &block)
