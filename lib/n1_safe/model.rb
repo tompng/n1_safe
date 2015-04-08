@@ -5,7 +5,7 @@ class N1Safe::Model < BasicObject
     @path = path
   end
   def method_missing name, *args, &block
-    reflection = @model.class.reflections[name]
+    reflection = @model.class.reflections[name] || @model.class.reflections[name.to_s]
     if reflection.nil? || args.present? || block
       return @model.send(name, *args, &block)
     end
@@ -15,7 +15,7 @@ class N1Safe::Model < BasicObject
     else
       @root.preload [*@path, name]
       child = send name
-      Model.new @root, child, [*@path, name] if child
+      ::N1Safe::Model.new @root, child, [*@path, name] if child
     end
   end
 end

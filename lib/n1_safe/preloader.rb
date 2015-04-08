@@ -17,7 +17,7 @@ class N1Safe::Preloader
     cache = {}
     all_siblings = @cache[path]
     all_siblings.group_by(&:class).each do |klass, siblings|
-      reflection = klass.reflections[name]
+      reflection = klass.reflections[name] || klass.reflections[name.to_s]
       next if reflection.belongs_to?
       next unless reflection.collection?
       next if reflection.through_reflection
@@ -40,7 +40,7 @@ class N1Safe::Preloader
     preload parent_path
     parents = @cache[parent_path]
     childs = {}
-    Preloader.preloader.preload parents, name
+    self.class.preloader.preload parents, name
     parents.map{|parent|
       child = parent.send(name)
       child = child.to_a if ActiveRecord::Relation === child
