@@ -23,129 +23,53 @@ end
 
 
 module N1Safe
-  class NotImplemented < Exception;end
   class LazyLoader
     def initialize bases
       @bases = bases
       @cache = {}
-      @cache[[]] = {nil => bases}
+      @cache[[]] = bases
       @count_cache = {}
     end
 
-    def count paths, model, name
-      path_key = [*paths, name]
-      cache_key = conditions_for model, name
-      return @cache[path_key][cache_key].try(:size) || 0 if @cache[path_key]
-      precount(path_key)[cache_key]
+    def self.preloader
+      @@preloader ||= ActiveRecord::Associations::Preloader.new
     end
 
-    def precount paths
-     return @count_cache[paths] if @count_cache[paths]
-      cache = Hash.new(0)
-      *parent_paths, name = paths
-      parents = preload(parent_paths).values.flatten
-      klass_conditions = {}
-      conditions = parents.map do |model|
-        reflection = model.reflections[name]
-        klass, key, value, scope, cond = conditions_for model, name
-        next unless klass
-        if reflection.through_reflection
-          raise NotImplemented
-        else
-          klass_conditions[[klass, key, scope, cond]]||=[]
-          klass_conditions[[klass, key, scope, cond]] << value
-        end
-      end
-
-      klass_conditions.each do |kkc, values|
-        klass, key, scope, cond = kkc
-        relation = klass.where(cond).where(key => values)
-        relation = relation.instance_eval &scope if scope
-        relation.group(key).count.each{|mkey, count|
-          cache_key = [klass, key, mkey, scope, cond]
-          cache[cache_key] += count
-        }
-      end
-      @count_cache[paths] = cache
-      cache
-    end
-
-    def load paths, model, name
-      child_siblings = preload [*paths, name]
-      cache_key = conditions_for model, name
-      childs = child_siblings[cache_key] || []
-      model.reflections[name].collection? ? childs : childs.first
-    end
-
-    def conditions_for model, name
-      reflection = model.reflections[name]
-      return unless reflection
-      if reflection.belongs_to?
-        if reflection.polymorphic?
-          type = model[reflection.foreign_type]
-          id = model[reflection.foreign_key]
-          return unless type && id
-          [type.constantize, :id, id, reflection.scope, nil]
-        else
-          id = model[reflection.foreign_key]
-          return unless id
-          [reflection.klass, :id, id, reflection.scope, nil]
-        end
-      else
-        if reflection.type
-          [
-            reflection.klass,
-            reflection.foreign_key,
-            model.id,
-            reflection.scope,
-            {reflection.type => model.class.name}
-          ]
-        else
-          [
-            reflection.klass,
-            reflection.foreign_key,
-            model.id,
-            reflection.scope,
-            nil
-          ]
-        end
-      end
-    end
-
-    def preload paths
-      return @cache[paths] if @cache[paths]
+    def count model, path, name
+      cache = @count_cache[[path, name]]
+      return cache[[model.class, model.id]] if cache
       cache = {}
-      *parent_paths, name = paths
-      parents = preload(parent_paths).values.flatten
-      klass_conditions = {}
-      conditions = parents.map do |model|
-        reflection = model.reflections[name]
-        klass, key, value, scope, cond = conditions_for model, name
-        next unless klass
-        if reflection.through_reflection
-          through_name = reflection.through_reflection.name
-          source_name = reflection.source_reflection.name
-          siblings = preload [*parent_paths, through_name, source_name]
-          throughs = load parent_paths, model, through_name
-          (cache[[klass, key, value, scope,cond]] ||= []).concat throughs.map{|through|
-            load [*parent_paths, through_name], through, source_name
-          }.flatten          
-        else
-          klass_conditions[[klass, key, scope, cond]]||=[]
-          klass_conditions[[klass, key, scope, cond]] << value
+      all_siblings = @cache[path]
+      all_siblings.group_by(&:class).each do |klass, siblings|
+        reflection = klass.reflections[name]
+        next if reflection.belongs_to?
+        next unless reflection.collection?
+        next if reflection.through_reflection
+        relation = reflection.klass.where reflection.foreign_key => siblings.map(&:id)
+        relation = relation.where reflection.type => klass.name if reflection.type
+        relation = relation.instance_exec &reflection.scope if reflection.scope
+        counts = relation.group(reflection.foreign_key).count
+        siblings.each do |sibling|
+          cache[[klass, sibling.id]] = counts[sibling.id] || 0
         end
       end
+      @count_cache[[path, name]] = cache
+      cache[[model.class, model.id]]
+    end
 
-      klass_conditions.each do |kkc, values|
-        klass, key, scope, cond = kkc
-        relation = klass.where(cond).where(key => values)
-        relation = relation.instance_eval &scope if scope
-        relation.each{|model|
-          (cache[[klass, key, model[key], scope, cond]] ||= []) << model
-        }
-      end
-      @cache[paths] = cache
-      cache
+    def preload path
+      return if @cache[path]
+      *parent_path, name = path
+      preload parent_path
+      parents = @cache[parent_path]
+      childs = {}
+      LazyLoader.preloader.preload parents, name
+      parents.map{|parent|
+        child = parent.send(name)
+        child = child.to_a if ActiveRecord::Relation === child
+        childs[[parent.class, parent.id]] = child if child
+      }
+      @cache[path] = childs.values.flatten
     end
   end
 
@@ -161,9 +85,11 @@ module N1Safe
         return @model.send(name, *args, &block)
       end
       if reflection.collection?
-        Relation.new @root, ->{@root.load @path, @model, name}, [*@path, name], @model
+        childs = send name
+        Relation.new @root, childs, [*@path, name], @model
       else
-        child = @root.load @path, @model, name
+        @root.preload [*@path, name]
+        child = send name
         Model.new @root, child, [*@path, name] if child
       end
     end
@@ -179,30 +105,23 @@ module N1Safe
 
     ::Enumerator.instance_methods.each do |name|
       define_method name do |*args, &block|
-        @collection_array ||= @collection.call
-        @collection_array.map{|model|
-          Model.new (@root||self), model, (@path||[])
+        @root.preload @path
+        @collection.map{|model|
+          Model.new @root, model, (@path||[])
         }.send(name, *args, &block)
       end
     end
 
-    [:count, :size].each do |name|
-      define_method name do |*args, &block|
-        unless block
-          *parent_paths, child_path = @path
-          begin
-            return @root.count parent_paths, @parent, child_path
-          rescue NotImplemented => e
-          end
-        end
-        @collection_array ||= @collection.call
-        @collection_array.send(name, *args, &block)
+    [:count, :size].each do |method|
+      define_method method do |*args, &block|
+        @collection.send(method, *args, &block) if args.present? || block || @parent.nil?
+        *parent_path, name = @path
+        @root.count(@parent, parent_path, name) || @collection.send(method, *args, &block)
       end
     end
 
     def method_missing name, *args, &block
-      @collection_array ||= @collection.call
-      @collection_array.send name, *args, &block
+      @collection.send name, *args, &block
     end
   end
 end
@@ -223,6 +142,6 @@ end
 ActiveRecord::Relation.class_eval do
   define_method :n1_safe do
     root = N1Safe::LazyLoader.new to_a
-    N1Safe::Relation.new root, ->{to_a}, [], nil
+    N1Safe::Relation.new root, self, [], nil
   end
 end
