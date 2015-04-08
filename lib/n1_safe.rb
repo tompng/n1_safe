@@ -1,3 +1,7 @@
+require_relative 'n1_safe/model'
+require_relative 'n1_safe/preloader'
+require_relative 'n1_safe/relation'
+
 module N1Safe
 end
 

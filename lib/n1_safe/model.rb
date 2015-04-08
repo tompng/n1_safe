@@ -5,7 +5,7 @@ class N1Safe::Model < BasicObject
     @path = path
   end
   def method_missing name, *args, &block
-    reflection = @model.reflections[name]
+    reflection = @model.class.reflections[name]
     if reflection.nil? || args.present? || block
       return @model.send(name, *args, &block)
     end
