@@ -1,9 +1,9 @@
+module N1Safe
+end
+
 require_relative 'n1_safe/model'
 require_relative 'n1_safe/preloader'
 require_relative 'n1_safe/relation'
-
-module N1Safe
-end
 
 ActiveRecord::Base.singleton_class.class_eval do
   define_method :n1_safe do
