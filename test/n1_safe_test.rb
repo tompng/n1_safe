@@ -1,29 +1,21 @@
 require 'test_helper'
 
-module SQLCounts
+module SQLCapture
   module M
     def exec_query *args
-      SQLCounts.increment_count
-      SQLCounts.log args
+      SQLCapture.log args.join(' ')
       super
     end
   end
   def self.log str
-    @logs << str.join(' ') if @logs
+    @logs << str if @logs
   end
-  def self.increment_count
-    @count = count + 1
-  end
-  def self.count
-    @count ||= 0
-    return @count unless block_given?
+  def self.capture
     @logs = []
-    before = self.count
     out = yield
-    after = self.count
     logs = @logs
     @logs = nil
-    [after - before, out, logs]
+    [logs, out]
   end
   ActiveRecord::Base.connection.extend M
 end
@@ -102,11 +94,11 @@ class N1SafeTest < ActiveSupport::TestCase
     target, proc, expected_count = cond
     test name.to_s do
       prepare
-      before_count, before = SQLCounts.count{proc.call target.call}
-      after_count, after = SQLCounts.count{proc.call target.call.n1_safe}
+      before_sqls, before = SQLCapture.capture{proc.call target.call}
+      after_sqls, after = SQLCapture.capture{proc.call target.call.n1_safe}
       assert_equal before, after
-      assert_operator before_count, :>=, expected_count*2
-      assert_operator after_count, :==, expected_count
+      assert_operator before_sqls.size, :>=, expected_count*2
+      assert_operator after_sqls.size, :==, expected_count
     end
   end
 
@@ -114,13 +106,14 @@ class N1SafeTest < ActiveSupport::TestCase
     target, proc, expected_count, expected_groupbys = cond
     test name.to_s do
       prepare
-      before_count, before = SQLCounts.count{proc.call target.call}
-      after_count, after, sqls = SQLCounts.count{proc.call target.call.n1_safe}
+      before_sqls, before = SQLCapture.capture{proc.call target.call}
+      after_sqls, after = SQLCapture.capture{proc.call target.call.n1_safe}
       assert_equal before, after
-      assert_operator before_count, :>=, expected_count*2
-      assert_operator after_count, :==, expected_count
-      assert_operator sqls.grep(/GROUP BY/).count, :==, expected_groupbys
-      assert_operator sqls.grep(/COUNT/).count, :==, expected_groupbys
+      assert_operator before_sqls.size, :>=, expected_count*2
+      assert_operator after_sqls.size, :==, expected_count
+      assert_operator before_sqls.grep(/COUNT/).count, :>=, expected_groupbys*2
+      assert_operator after_sqls.grep(/GROUP BY/).count, :==, expected_groupbys
+      assert_operator after_sqls.grep(/COUNT/).count, :==, expected_groupbys
     end
   end
 
