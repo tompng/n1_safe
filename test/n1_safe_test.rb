@@ -104,6 +104,25 @@ class N1SafeTest < ActiveSupport::TestCase
         },
         12,
         6
+      ],
+      inverse_polymorphic: [
+        ->{Blog.all},
+        ->(blogs){
+          blogs.map(&:owner).flat_map(&:favs).map(&:target).map{|target|
+            case target
+            when Post
+              target.comments.count
+            when Comment
+              target.favs.count
+            when Blog
+              target.posts.count
+            else
+              raise 'error'
+            end
+          }
+        },
+        0,
+        0
       ]
     }
   end
