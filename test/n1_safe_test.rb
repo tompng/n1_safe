@@ -22,15 +22,18 @@ end
 
 class N1SafeTest < ActiveSupport::TestCase
   def prepare
-    10.times{User.create}
-    10.times{AdminUser.create}
-    10.times{SuperUser.create}
+    5.times{User.create}
+    5.times{AdminUser.create}
+    5.times{SuperUser.create}
     users = User.all.to_a
+    user_or_nil=->{
+      users.sample if rand<0.5
+    }
     blogs = 5.times.map{Blog.create owner: users.sample}
-    posts = 20.times.map{blogs.sample.posts.create author: users.sample, published: [true,false].sample}
-    comments = 80.times.map{posts.sample.comments.create user: users.sample}
-    10.times{blogs.sample.favs.create user: users.sample}
-    40.times{posts.sample.favs.create user: users.sample}
+    posts = 40.times.map{blogs.sample.posts.create author: user_or_nil[], published: [true,false].sample}
+    comments = 80.times.map{posts.sample.comments.create user: user_or_nil[]}
+    40.times{blogs.sample.favs.create user: users.sample}
+    80.times{posts.sample.favs.create user: users.sample}
     160.times{comments.sample.favs.create user: users.sample}
     60.times{users.sample.trashes.create}
   end
@@ -41,9 +44,16 @@ class N1SafeTest < ActiveSupport::TestCase
       model: [
         ->{Blog.first},
         ->(blog){
-          blog.posts.flat_map(&:comments).flat_map(&:user)
+          blog.posts.flat_map(&:comments).flat_map(&:favs).flat_map(&:user)
         },
-        4
+        5
+      ],
+      has_nil: [
+        ->{Comment.all},
+        ->(comments){
+          comments.map(&:user).compact.flat_map(&:blogs)
+        },
+        3
       ],
       scope: [
         ->{Blog.limit(3)},
@@ -53,11 +63,29 @@ class N1SafeTest < ActiveSupport::TestCase
         3
       ],
       polymorphic_and_sti: [
-        ->{Blog.limit(2)},
+        ->{Blog.all},
         ->(blogs){
           blogs.flat_map(&:posts).flat_map(&:favs).flat_map(&:user).flat_map(&:blogs)
         },
         5
+      ],
+      inverse_polymorphic: [
+        ->{Blog.all},
+        ->(blogs){
+          blogs.map(&:owner).flat_map(&:favs).map{|fav|
+            case fav.target
+            when Comment
+              fav.target.user
+            when Post
+              fav.target.author
+            when Blog
+              fav.target.owner
+            else
+              raise 'error'
+            end
+          }
+        },
+        9
       ],
       through_and_primarykey: [
         ->{Trash.all},
@@ -79,13 +107,32 @@ class N1SafeTest < ActiveSupport::TestCase
               blog.draft_posts.count,
               blog.posts.map{|p|[p.comments.count, p.faved_users.count]},
               blog.favs.count,
-              blog.posts.map{|p|p.author.trashes.count},
+              blog.posts.map{|p|p.author.trashes.count if p.author},
               blog.through_comments.count
             ]
           }
         },
         12,
         6
+      ],
+      inverse_polymorphic: [
+        ->{Blog.all},
+        ->(blogs){
+          blogs.map(&:owner).flat_map(&:favs).map(&:target).map{|target|
+            case target
+            when Post
+              target.comments.count
+            when Comment
+              target.user.favs.count if target.user
+            when Blog
+              target.posts.count
+            else
+              raise 'error'
+            end
+          }
+        },
+        12,
+        5
       ]
     }
   end
@@ -104,7 +151,7 @@ class N1SafeTest < ActiveSupport::TestCase
 
   count_testcases.each do |name, cond|
     target, proc, expected_count, expected_groupbys = cond
-    test name.to_s do
+    test "count_#{name}" do
       prepare
       before_sqls, before = SQLCapture.capture{proc.call target.call}
       after_sqls, after = SQLCapture.capture{proc.call target.call.n1_safe}
