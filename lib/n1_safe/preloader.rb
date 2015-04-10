@@ -39,13 +39,16 @@ class N1Safe::Preloader
     *parent_path, name = path
     preload parent_path
     parents = @cache[parent_path]
-    childs = {}
+    childs = []
     self.class.preloader.preload parents, name
     parents.map{|parent|
       child = parent.send(name)
-      child = child.to_a if ActiveRecord::Relation === child
-      childs[[parent.class, parent.id]] = child if child
+      if ActiveRecord::Relation === child
+        childs += child.to_a
+      else
+        childs << child if child
+      end
     }
-    @cache[path] = childs.values.flatten
+    @cache[path] = childs.uniq
   end
 end
