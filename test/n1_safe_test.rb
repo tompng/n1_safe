@@ -121,8 +121,8 @@ class N1SafeTest < ActiveSupport::TestCase
             end
           }
         },
-        0,
-        0
+        11,
+        5
       ]
     }
   end

@@ -18,6 +18,7 @@ class N1Safe::Preloader
     all_siblings = @cache[path]
     all_siblings.group_by(&:class).each do |klass, siblings|
       reflection = klass.reflections[name] || klass.reflections[name.to_s]
+      next unless reflection
       next if reflection.belongs_to?
       next unless reflection.collection?
       next if reflection.through_reflection
