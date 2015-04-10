@@ -22,18 +22,18 @@ end
 
 class N1SafeTest < ActiveSupport::TestCase
   def prepare
-    10.times{User.create}
-    10.times{AdminUser.create}
-    10.times{SuperUser.create}
+    5.times{User.create}
+    5.times{AdminUser.create}
+    5.times{SuperUser.create}
     users = User.all.to_a
     user_or_nil=->{
       users.sample if rand<0.5
     }
     blogs = 5.times.map{Blog.create owner: users.sample}
-    posts = 20.times.map{blogs.sample.posts.create author: user_or_nil[], published: [true,false].sample}
+    posts = 40.times.map{blogs.sample.posts.create author: user_or_nil[], published: [true,false].sample}
     comments = 80.times.map{posts.sample.comments.create user: user_or_nil[]}
-    20.times{blogs.sample.favs.create user: users.sample}
-    40.times{posts.sample.favs.create user: users.sample}
+    40.times{blogs.sample.favs.create user: users.sample}
+    80.times{posts.sample.favs.create user: users.sample}
     160.times{comments.sample.favs.create user: users.sample}
     60.times{users.sample.trashes.create}
   end
@@ -44,9 +44,9 @@ class N1SafeTest < ActiveSupport::TestCase
       model: [
         ->{Blog.first},
         ->(blog){
-          blog.posts.flat_map(&:comments).flat_map(&:user)
+          blog.posts.flat_map(&:comments).flat_map(&:favs).flat_map(&:user)
         },
-        4
+        5
       ],
       has_nil: [
         ->{Comment.all},
