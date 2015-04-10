@@ -29,7 +29,7 @@ class N1SafeTest < ActiveSupport::TestCase
     blogs = 5.times.map{Blog.create owner: users.sample}
     posts = 20.times.map{blogs.sample.posts.create author: users.sample, published: [true,false].sample}
     comments = 80.times.map{posts.sample.comments.create user: users.sample}
-    10.times{blogs.sample.favs.create user: users.sample}
+    20.times{blogs.sample.favs.create user: users.sample}
     40.times{posts.sample.favs.create user: users.sample}
     160.times{comments.sample.favs.create user: users.sample}
     60.times{users.sample.trashes.create}
@@ -75,7 +75,7 @@ class N1SafeTest < ActiveSupport::TestCase
             end
           }
         },
-        6
+        9
       ],
       through_and_primarykey: [
         ->{Trash.all},
@@ -122,7 +122,7 @@ class N1SafeTest < ActiveSupport::TestCase
 
   count_testcases.each do |name, cond|
     target, proc, expected_count, expected_groupbys = cond
-    test name.to_s do
+    test "count_#{name}" do
       prepare
       before_sqls, before = SQLCapture.capture{proc.call target.call}
       after_sqls, after = SQLCapture.capture{proc.call target.call.n1_safe}
