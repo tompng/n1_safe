@@ -26,9 +26,12 @@ class N1SafeTest < ActiveSupport::TestCase
     10.times{AdminUser.create}
     10.times{SuperUser.create}
     users = User.all.to_a
+    user_or_nil=->{
+      users.sample if rand<0.5
+    }
     blogs = 5.times.map{Blog.create owner: users.sample}
-    posts = 20.times.map{blogs.sample.posts.create author: users.sample, published: [true,false].sample}
-    comments = 80.times.map{posts.sample.comments.create user: users.sample}
+    posts = 20.times.map{blogs.sample.posts.create author: user_or_nil[], published: [true,false].sample}
+    comments = 80.times.map{posts.sample.comments.create user: user_or_nil[]}
     20.times{blogs.sample.favs.create user: users.sample}
     40.times{posts.sample.favs.create user: users.sample}
     160.times{comments.sample.favs.create user: users.sample}
@@ -44,6 +47,13 @@ class N1SafeTest < ActiveSupport::TestCase
           blog.posts.flat_map(&:comments).flat_map(&:user)
         },
         4
+      ],
+      has_nil: [
+        ->{Comment.all},
+        ->(comments){
+          comments.map(&:user).compact.flat_map(&:blogs)
+        },
+        3
       ],
       scope: [
         ->{Blog.limit(3)},
@@ -97,7 +107,7 @@ class N1SafeTest < ActiveSupport::TestCase
               blog.draft_posts.count,
               blog.posts.map{|p|[p.comments.count, p.faved_users.count]},
               blog.favs.count,
-              blog.posts.map{|p|p.author.trashes.count},
+              blog.posts.map{|p|p.author.trashes.count if p.author},
               blog.through_comments.count
             ]
           }
@@ -113,7 +123,7 @@ class N1SafeTest < ActiveSupport::TestCase
             when Post
               target.comments.count
             when Comment
-              target.favs.count
+              target.user.favs.count if target.user
             when Blog
               target.posts.count
             else
@@ -121,7 +131,7 @@ class N1SafeTest < ActiveSupport::TestCase
             end
           }
         },
-        11,
+        12,
         5
       ]
     }
