@@ -53,11 +53,29 @@ class N1SafeTest < ActiveSupport::TestCase
         3
       ],
       polymorphic_and_sti: [
-        ->{Blog.limit(2)},
+        ->{Blog.all},
         ->(blogs){
           blogs.flat_map(&:posts).flat_map(&:favs).flat_map(&:user).flat_map(&:blogs)
         },
         5
+      ],
+      inverse_polymorphic: [
+        ->{Blog.all},
+        ->(blogs){
+          blogs.map(&:owner).flat_map(&:favs).map{|fav|
+            case fav.target
+            when Comment
+              fav.target.user
+            when Post
+              fav.target.author
+            when Blog
+              fav.target.owner
+            else
+              raise 'error'
+            end
+          }
+        },
+        6
       ],
       through_and_primarykey: [
         ->{Trash.all},
