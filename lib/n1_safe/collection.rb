@@ -1,4 +1,4 @@
-class N1Safe::Relation < BasicObject
+class N1Safe::Collection < BasicObject
   def initialize root, collection, path, parent
     @root = root
     @collection = collection
