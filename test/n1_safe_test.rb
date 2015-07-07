@@ -1,4 +1,4 @@
-require 'test_helper'
+require './test_helper'
 
 module SQLCapture
   module M
@@ -141,6 +141,8 @@ class N1SafeTest < ActiveSupport::TestCase
     target, proc, expected_count = cond
     test name.to_s do
       prepare
+      # require 'pry';binding.pry
+      # break
       before_sqls, before = SQLCapture.capture{proc.call target.call}
       after_sqls, after = SQLCapture.capture{proc.call target.call.n1_safe}
       assert_equal before, after
@@ -152,6 +154,7 @@ class N1SafeTest < ActiveSupport::TestCase
   count_testcases.each do |name, cond|
     target, proc, expected_count, expected_groupbys = cond
     test "count_#{name}" do
+      # break
       prepare
       before_sqls, before = SQLCapture.capture{proc.call target.call}
       after_sqls, after = SQLCapture.capture{proc.call target.call.n1_safe}

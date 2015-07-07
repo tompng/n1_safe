@@ -1,21 +1,31 @@
-class N1Safe::Model < BasicObject
-  def initialize root, model, path
-    @root = root
-    @model = model
-    @path = path
+module N1Safe::Model
+  def n1_safe
+    n1_safe_set
   end
-  def method_missing name, *args, &block
-    reflection = @model.class.reflections[name] || @model.class.reflections[name.to_s]
-    if reflection.nil? || args.present? || block
-      return @model.send(name, *args, &block)
-    end
-    if reflection.collection?
-      childs = send name
-      ::N1Safe::Collection.new @root, childs, [*@path, name], @model
-    else
-      @root.preload [*@path, name]
-      child = send name
-      ::N1Safe::Model.new @root, child, [*@path, name] if child
-    end
+
+  def n1_safe_info
+    @n1_safe
+  end
+
+  def n1_safe?
+    !!@n1_safe
+  end
+
+  def n1_safe_set root: nil, path: nil, parent: nil
+    root ||= ::N1Safe::Preloader.new [self]
+    path ||= []
+    @n1_safe = {root: root, path: path, parent: parent}
+    self
+  end
+
+  def n1_safe_preload name
+    path = [*@n1_safe[:path], name]
+    hoge = @n1_safe
+    @n1_safe = nil
+    hoge[:root].preload path
+    child = send name
+    child.n1_safe_set root: hoge[:root], path: path, parent: self if child
+    @n1_safe = hoge
+    child
   end
 end
