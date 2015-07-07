@@ -38,6 +38,7 @@ class N1SafeTest < ActiveSupport::TestCase
     60.times{users.sample.trashes.create}
   end
 
+  test('demo'){prepare;require 'pry';binding.pry} if ARGV[0]=='demo'
 
   def self.include_testcases
     {
