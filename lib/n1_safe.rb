@@ -8,7 +8,7 @@ require_relative 'n1_safe/base_class'
 require_relative 'n1_safe/relation'
 
 ActiveRecord::Base.singleton_class.class_eval do
-  prepend N1Safe::BaseClass
+  include N1Safe::BaseClass
   def n1_safe
     all.n1_safe
   end
@@ -16,7 +16,7 @@ end
 
 
 ActiveRecord::Base.class_eval do
-  prepend N1Safe::Model
+  include N1Safe::Model
 end
 
 ActiveRecord::Associations::CollectionProxy.class_eval do
