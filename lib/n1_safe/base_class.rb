@@ -7,12 +7,11 @@ module N1Safe::BaseClass
     @n1_safe_module
   end
 
-
   def n1_safe_define name, multiple: false
     n1_safe_module.send :define_method, name do
-      return super() unless @n1_safe
+      return super() unless n1_safe?
       if @n1_safe
-        n1_safe_preload name unless multiple# unless association(name).loaded?
+        n1_safe_preload name unless multiple
         child = super()
         child.n1_safe_set root: @n1_safe[:root], path: [*@n1_safe[:path], name], parent: self if child
       end
