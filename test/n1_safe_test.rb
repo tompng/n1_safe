@@ -1,4 +1,4 @@
-require 'test_helper'
+require_relative './test_helper'
 
 module SQLCapture
   module M
@@ -38,6 +38,7 @@ class N1SafeTest < ActiveSupport::TestCase
     60.times{users.sample.trashes.create}
   end
 
+  test('demo'){prepare;require 'pry';binding.pry} if ARGV[0]=='demo'
 
   def self.include_testcases
     {
@@ -157,10 +158,12 @@ class N1SafeTest < ActiveSupport::TestCase
       after_sqls, after = SQLCapture.capture{proc.call target.call.n1_safe}
       assert_equal before, after
       assert_operator before_sqls.size, :>=, expected_count*2
-      assert_operator after_sqls.size, :==, expected_count
       assert_operator before_sqls.grep(/COUNT/).count, :>=, expected_groupbys*2
-      assert_operator after_sqls.grep(/GROUP BY/).count, :==, expected_groupbys
-      assert_operator after_sqls.grep(/COUNT/).count, :==, expected_groupbys
+      assert_operator [after_sqls.size,
+                      after_sqls.grep(/GROUP BY/).count,
+                      after_sqls.grep(/COUNT/).count],
+                      :==,
+                      [expected_count, expected_groupbys, expected_groupbys]
     end
   end
 

@@ -21,7 +21,7 @@ class N1Safe::Preloader
       next unless reflection
       next if reflection.belongs_to?
       next unless reflection.collection?
-      next if reflection.through_reflection
+      next if reflection.through_reflection #through count not implemented
       key = reflection.active_record_primary_key
       relation = reflection.klass.where reflection.foreign_key => siblings.map{|m|m.send key}
       relation = relation.where reflection.type => klass.name if reflection.type
