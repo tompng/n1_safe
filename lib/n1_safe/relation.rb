@@ -25,7 +25,6 @@ module N1Safe::Relation
     @n1_safe=nil
     hoge[:root].preload hoge[:path]
     load
-    # (@records||[])
     load_target.map{|s|
       s.n1_safe_set root: hoge[:root], path: hoge[:path], parent: hoge[:parent]
     }
@@ -34,8 +33,8 @@ module N1Safe::Relation
 
   %i(to_a to_ary first second third fourth fifth).each do |name|
     define_method name do |*args, &block|
+      return super *args, &block unless @n1_safe
       n1_safe_preload if @n1_safe
-      return super *args, &block unless respond_to? :load_target
       load_target.send name, *args, &block
     end
   end
@@ -46,8 +45,9 @@ module N1Safe::Relation
   end
 
   def count *args, &block
-    n1_safe_preload if @n1_safe
-    super
+    return super unless @n1_safe
+    *parent_path, name = @n1_safe[:path]
+    @n1_safe[:root].count(@n1_safe[:parent], parent_path, name) || to_a.size
   end
 
 end

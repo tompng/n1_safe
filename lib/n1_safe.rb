@@ -30,9 +30,10 @@ ActiveRecord::Relation.class_eval do
   end
 end
 
-# Array.class_eval do
-#   def n1_safe
-#     root = N1Safe::Preloader.new self
-#     N1Safe::Collection.new root, self, [], nil
-#   end
-# end
+Array.class_eval do
+  def n1_safe
+    root = N1Safe::Preloader.new self
+    each{|record|record.n1_safe_set root: root}
+    self
+  end
+end
