@@ -20,15 +20,9 @@ class N1Safe::Preloader
       reflection = klass.reflections[name] || klass.reflections[name.to_s]
       next unless reflection
       next if reflection.belongs_to?
-      next unless reflection.collection?
-      next if reflection.through_reflection #through count not implemented
-      key = reflection.active_record_primary_key
-      relation = reflection.klass.where reflection.foreign_key => siblings.map{|m|m.send key}
-      relation = relation.where reflection.type => klass.name if reflection.type
-      relation = relation.instance_exec &reflection.scope if reflection.scope
-      counts = relation.group(reflection.foreign_key).count
+      counts = klass.where(id: siblings.map(&:id)).joins(name).group(klass.arel_table[:id]).count
       siblings.each do |m|
-        cache[[klass, m.id]] = counts[m.send key] || 0
+        cache[[klass, m.id]] = counts[m.id] || 0
       end
     end
     @count_cache[[path, name]] = cache
