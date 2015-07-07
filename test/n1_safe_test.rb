@@ -113,8 +113,8 @@ class N1SafeTest < ActiveSupport::TestCase
             ]
           }
         },
-        12,
-        6
+        11,
+        8
       ],
       inverse_polymorphic: [
         ->{Blog.all},
