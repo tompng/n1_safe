@@ -38,7 +38,13 @@ class N1SafeTest < ActiveSupport::TestCase
     60.times{users.sample.trashes.create}
   end
 
-  test('demo'){prepare;require 'pry';binding.pry} if ARGV[0]=='demo'
+  test('demo'){
+    prepare;
+    def SQLCapture.log str;puts "\e[1m#{str}\e[m";end
+    require 'pry'
+    binding.pry
+    def SQLCapture.log str;@logs << str if @logs;end
+  } if ARGV[0]=='demo'
 
   def self.include_testcases
     {
